@@ -35,6 +35,9 @@ import com.eltavine.duckdetector.features.systemproperties.ui.model.SystemProper
 import com.eltavine.duckdetector.features.tee.ui.model.TeeCardModel
 import com.eltavine.duckdetector.features.virtualization.ui.model.VirtualizationCardModel
 import com.eltavine.duckdetector.features.zygisk.ui.model.ZygiskCardModel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 data class DashboardOverviewMetricModel(
@@ -189,6 +192,7 @@ data class DashboardUiState(
 fun buildDashboardOverview(
     contributions: List<DashboardDetectorContribution>,
     scanDurationMillis: Long? = null,
+    scanCompletedAtEpochMillis: Long? = null,
 ): DashboardOverviewModel {
     val total = contributions.size
     val readyCount = contributions.count { it.ready }
@@ -231,8 +235,8 @@ fun buildDashboardOverview(
     }
 
     return DashboardOverviewModel(
-        title = if (scanDurationMillis != null && pendingCount == 0) {
-            "Scan time ${formatScanDuration(scanDurationMillis)}"
+        title = if (scanDurationMillis != null && scanCompletedAtEpochMillis != null && pendingCount == 0) {
+            "Scanned at ${formatDetectedTimeLocal(scanCompletedAtEpochMillis)}\nTotal time ${formatScanDuration(scanDurationMillis)}"
         } else {
             "Security overview"
         },
@@ -265,6 +269,13 @@ fun buildDashboardOverview(
         ),
         showTitleIcon = scanDurationMillis != null && pendingCount == 0,
     )
+}
+
+private fun formatDetectedTimeLocal(epochMillis: Long): String {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US)
+    return Instant.ofEpochMilli(epochMillis)
+        .atZone(ZoneId.systemDefault())
+        .format(formatter)
 }
 
 private fun formatScanDuration(
