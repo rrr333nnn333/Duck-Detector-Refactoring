@@ -94,7 +94,7 @@ gradlew.bat :app:assembleDebug
  * **Hardware & Vendor Restrictions**: Due to OEM policies or sandbox rules, some probes may report downgraded statuses on specific models. Certain low-level checks rely strictly on the arm64-v8a ABI architecture.
 ## 📈 Status & Stars
 
-[![star-history-chart]]
+![star-history-chart]
 
 ## ⚖️ Disclaimer
 ```text
