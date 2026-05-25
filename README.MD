@@ -110,3 +110,5 @@ This project is open-sourced under the **Apache License 2.0**.
 <a href="https://github.com/eltavine/Duck-Detector-Refactoring/graphs/contributors">
 <img src="https://contrib.rocks/image?repo=eltavine/Duck-Detector-Refactoring" />
 </a>
+
+[star-history-chart]: https://api.star-history.com/svg?repos=eltavine/Duck-Detector-Refactoring&type=Date
