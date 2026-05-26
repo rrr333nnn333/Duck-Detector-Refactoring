@@ -27,6 +27,8 @@ import com.eltavine.duckdetector.features.tee.data.verification.certificate.Chai
 import com.eltavine.duckdetector.features.tee.data.verification.certificate.CertificateTrustResult
 import com.eltavine.duckdetector.features.tee.data.verification.certificate.DualAlgorithmChainResult
 import com.eltavine.duckdetector.features.tee.data.verification.crl.CrlStatusResult
+import com.eltavine.duckdetector.features.tee.data.verification.crl.RevokedCertificate
+import com.eltavine.duckdetector.features.tee.data.verification.crl.RevokedCertificateEvidenceKind
 import com.eltavine.duckdetector.features.tee.data.verification.boot.BootConsistencyResult
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.IdAttestationResult
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.AesGcmRoundTripResult
@@ -38,6 +40,10 @@ import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantDo
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantDomainFullChainSplitResult
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantSelfDomainAnomalyKind
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantSelfDomainFullChainSplitResult
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGetKeyEntryAccessVectorBlindnessAnomalyKind
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGetKeyEntryAccessVectorBlindnessResult
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGranteeBlindReadbackAnomalyKind
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGranteeBlindReadbackResult
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.ImportKeyRetainedAttestationAnomalyKind
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.ImportKeyRetainedAttestationNarrativeResult
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.KeyLifecycleResult
@@ -412,6 +418,119 @@ class TeeReportReducerTest {
             it.title == "Grant isolated-domain" &&
                 it.level == TeeSignalLevel.INFO &&
                 it.body.contains("Unavailable", ignoreCase = true)
+        })
+    }
+
+    @Test
+    fun `grant caller binding non grantee readback becomes supplementary danger`() {
+        val report = reducer.reduce(
+            baseArtifacts(
+                syntheticGrantGranteeBlindReadback = SyntheticGrantGranteeBlindReadbackResult(
+                    executed = true,
+                    available = true,
+                    grantCreated = true,
+                    granteeUid = 99001,
+                    granteeReadSucceeded = true,
+                    ownerReplaySucceeded = true,
+                    anomalyKind = SyntheticGrantGranteeBlindReadbackAnomalyKind.NON_GRANTEE_READBACK_ALLOWED,
+                    detail = "Private: non-grantee owner replay succeeded for isolated grant handle.",
+                    diagnosticCopyText = "grant caller binding diagnostic",
+                ),
+            ),
+        )
+
+        assertEquals(TeeVerdict.CONSISTENT, report.verdict)
+        assertEquals(1, report.supplementaryIndicatorCount)
+        assertEquals(TeeSignalLevel.FAIL, report.supplementaryReviewLevel)
+        assertTrue(report.summary.contains("Grant handle remained readable", ignoreCase = true))
+        assertTrue(report.sections.single { it.title == "Checks" }.items.any {
+            it.title == "Grant caller binding" &&
+                it.level == TeeSignalLevel.FAIL &&
+                it.body.contains("NON_GRANTEE_READBACK_ALLOWED") &&
+                it.body.contains("ownerReplay=true") &&
+                it.hiddenCopyText == "grant caller binding diagnostic"
+        })
+    }
+
+    @Test
+    fun `grant caller binding rejected owner replay stays clean`() {
+        val report = reducer.reduce(
+            baseArtifacts(
+                syntheticGrantGranteeBlindReadback = SyntheticGrantGranteeBlindReadbackResult(
+                    executed = true,
+                    available = true,
+                    grantCreated = true,
+                    granteeUid = 99001,
+                    granteeReadSucceeded = true,
+                    anomalyKind = SyntheticGrantGranteeBlindReadbackAnomalyKind.NONE,
+                    detail = "Private: owner replay rejected with KEY_NOT_FOUND.",
+                ),
+            ),
+        )
+
+        assertEquals(0, report.supplementaryIndicatorCount)
+        assertTrue(report.sections.single { it.title == "Checks" }.items.any {
+            it.title == "Grant caller binding" &&
+                it.level == TeeSignalLevel.PASS &&
+                it.body.contains("ownerReplay=KEY_NOT_FOUND")
+        })
+    }
+
+    @Test
+    fun `grant access vector missing get info readback becomes supplementary danger`() {
+        val report = reducer.reduce(
+            baseArtifacts(
+                syntheticGrantGetKeyEntryAccessVectorBlindness =
+                    SyntheticGrantGetKeyEntryAccessVectorBlindnessResult(
+                        executed = true,
+                        available = true,
+                        grantCreated = true,
+                        granteeUid = 99001,
+                        accessVector = 0x100,
+                        granteeReadSucceeded = true,
+                        anomalyKind =
+                            SyntheticGrantGetKeyEntryAccessVectorBlindnessAnomalyKind.GET_KEY_ENTRY_WITHOUT_GET_INFO_ALLOWED,
+                        detail = "Private: grantee getKeyEntry(GRANT) succeeded without GET_INFO.",
+                        diagnosticCopyText = "grant access-vector diagnostic",
+                    ),
+            ),
+        )
+
+        assertEquals(TeeVerdict.CONSISTENT, report.verdict)
+        assertEquals(1, report.supplementaryIndicatorCount)
+        assertEquals(TeeSignalLevel.FAIL, report.supplementaryReviewLevel)
+        assertTrue(report.summary.contains("without GET_INFO", ignoreCase = true))
+        assertTrue(report.sections.single { it.title == "Checks" }.items.any {
+            it.title == "Grant access vector" &&
+                it.level == TeeSignalLevel.FAIL &&
+                it.body.contains("GET_KEY_ENTRY_WITHOUT_GET_INFO_ALLOWED") &&
+                it.body.contains("accessVector=256") &&
+                it.hiddenCopyText == "grant access-vector diagnostic"
+        })
+    }
+
+    @Test
+    fun `grant access vector permission denied readback stays clean`() {
+        val report = reducer.reduce(
+            baseArtifacts(
+                syntheticGrantGetKeyEntryAccessVectorBlindness =
+                    SyntheticGrantGetKeyEntryAccessVectorBlindnessResult(
+                        executed = true,
+                        available = true,
+                        grantCreated = true,
+                        granteeUid = 99001,
+                        accessVector = 0x100,
+                        anomalyKind = SyntheticGrantGetKeyEntryAccessVectorBlindnessAnomalyKind.NONE,
+                        detail = "Private: grantee getKeyEntry(GRANT) rejected with PERMISSION_DENIED.",
+                    ),
+            ),
+        )
+
+        assertEquals(0, report.supplementaryIndicatorCount)
+        assertTrue(report.sections.single { it.title == "Checks" }.items.any {
+            it.title == "Grant access vector" &&
+                it.level == TeeSignalLevel.PASS &&
+                it.body.contains("granteeRead=PERMISSION_DENIED")
         })
     }
 
@@ -1757,6 +1876,66 @@ class TeeReportReducerTest {
     }
 
     @Test
+    fun `local mass abuse revocation is warning not tampered`() {
+        val report = reducer.reduce(
+            baseArtifacts(
+                networkState = TeeNetworkState(
+                    mode = TeeNetworkMode.SKIPPED,
+                    summary = "Built-in revocation snapshot is active; online refresh is disabled in Settings.",
+                    cacheEntries = 1,
+                    usedCache = true,
+                ),
+                crlRevokedCertificates = listOf(
+                    RevokedCertificate(
+                        serial = "8616ef30679ed43cc2b43e3c97a2319e / 178194732304493...",
+                        reason = "MASS_ABUSE",
+                        evidenceKind = RevokedCertificateEvidenceKind.LOCAL_MASS_ABUSE,
+                    )
+                ),
+            ),
+        )
+
+        assertEquals(TeeVerdict.SUSPICIOUS, report.verdict)
+        assertTrue(report.summary.contains("mass abuse", ignoreCase = true))
+        assertTrue(report.sections.single { it.title == "Trust" }.items.any {
+            it.title == "CRL" &&
+                    it.body.contains("mass abuse", ignoreCase = true) &&
+                    it.level == TeeSignalLevel.WARN
+        })
+        assertTrue(report.signals.any {
+            it.label == "CRL" && it.value == "Mass abuse" && it.level == TeeSignalLevel.WARN
+        })
+    }
+
+    @Test
+    fun `standard crl revocation remains tampered`() {
+        val report = reducer.reduce(
+            baseArtifacts(
+                networkState = TeeNetworkState(
+                    mode = TeeNetworkMode.ACTIVE,
+                    summary = "Online revocation data refreshed successfully.",
+                ),
+                crlRevokedCertificates = listOf(
+                    RevokedCertificate(
+                        serial = "8616ef30679ed43cc2b43e3c97a2319e / 178194732304493...",
+                        reason = "KEY_COMPROMISE",
+                    )
+                ),
+            ),
+        )
+
+        assertEquals(TeeVerdict.TAMPERED, report.verdict)
+        assertTrue(report.sections.single { it.title == "Trust" }.items.any {
+            it.title == "CRL" &&
+                    it.body.contains("revoked", ignoreCase = true) &&
+                    it.level == TeeSignalLevel.FAIL
+        })
+        assertTrue(report.signals.any {
+            it.label == "CRL" && it.value == "Revoked" && it.level == TeeSignalLevel.FAIL
+        })
+    }
+
+    @Test
     fun `refresh failed crl state is surfaced as degraded`() {
         val report = reducer.reduce(
             baseArtifacts(
@@ -1976,6 +2155,7 @@ class TeeReportReducerTest {
             mode = TeeNetworkMode.INACTIVE,
             summary = "Offline-only verification",
         ),
+        crlRevokedCertificates: List<RevokedCertificate> = emptyList(),
         trust: CertificateTrustResult = CertificateTrustResult(
             trustRoot = TeeTrustRoot.GOOGLE,
             chainLength = 3,
@@ -2008,6 +2188,14 @@ class TeeReportReducerTest {
         grantDomainFullChainSplit: GrantDomainFullChainSplitResult = GrantDomainFullChainSplitResult(
             detail = "skipped",
         ),
+        syntheticGrantGranteeBlindReadback: SyntheticGrantGranteeBlindReadbackResult =
+            SyntheticGrantGranteeBlindReadbackResult(
+                detail = "skipped",
+            ),
+        syntheticGrantGetKeyEntryAccessVectorBlindness: SyntheticGrantGetKeyEntryAccessVectorBlindnessResult =
+            SyntheticGrantGetKeyEntryAccessVectorBlindnessResult(
+                detail = "skipped",
+            ),
         grantSelfDomainFullChainSplit: GrantSelfDomainFullChainSplitResult = GrantSelfDomainFullChainSplitResult(
             detail = "skipped",
         ),
@@ -2087,6 +2275,7 @@ class TeeReportReducerTest {
             rkp = rkp,
             crl = CrlStatusResult(
                 networkState = networkState,
+                revokedCertificates = crlRevokedCertificates,
             ),
             pairConsistency = KeyPairConsistencyResult(
                 keyMatchesCertificate = true,
@@ -2113,6 +2302,8 @@ class TeeReportReducerTest {
             keystore2Hook = keystore2Hook,
             generateModeParcelFingerprint = generateModeParcelFingerprint,
             grantDomainFullChainSplit = grantDomainFullChainSplit,
+            syntheticGrantGranteeBlindReadback = syntheticGrantGranteeBlindReadback,
+            syntheticGrantGetKeyEntryAccessVectorBlindness = syntheticGrantGetKeyEntryAccessVectorBlindness,
             grantSelfDomainFullChainSplit = grantSelfDomainFullChainSplit,
             legacyKeystorePath = legacyKeystorePath,
             listEntriesConsistency = listEntriesConsistency,

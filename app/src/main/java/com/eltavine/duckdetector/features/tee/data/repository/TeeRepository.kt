@@ -45,7 +45,15 @@ import com.eltavine.duckdetector.features.tee.data.verification.keystore.KeyboxI
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.Keystore2GenerateModeParcelFingerprintProbe
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.Keystore2HookProbe
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantDomainFullChainSplitProbe
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantDomainAnomalyKind
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantDomainFullChainSplitResult
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantSelfDomainFullChainSplitProbe
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantSelfDomainAnomalyKind
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantSelfDomainFullChainSplitResult
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGetKeyEntryAccessVectorBlindnessProbe
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGranteeBlindReadbackAnomalyKind
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGranteeBlindReadbackProbe
+import com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGranteeBlindReadbackResult
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.LegacyKeystorePathProbe
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.ListEntriesBatchedProbe
 import com.eltavine.duckdetector.features.tee.data.verification.keystore.ListEntriesConsistencyProbe
@@ -95,6 +103,9 @@ class TeeRepository(
     private val generateModeParcelFingerprintProbe = Keystore2GenerateModeParcelFingerprintProbe()
     private val grantDomainFullChainSplitProbe = GrantDomainFullChainSplitProbe(appContext)
     private val grantSelfDomainFullChainSplitProbe = GrantSelfDomainFullChainSplitProbe(appContext)
+    private val syntheticGrantGranteeBlindReadbackProbe = SyntheticGrantGranteeBlindReadbackProbe(appContext)
+    private val syntheticGrantGetKeyEntryAccessVectorBlindnessProbe =
+        SyntheticGrantGetKeyEntryAccessVectorBlindnessProbe(appContext)
     private val legacyKeystorePathProbe = LegacyKeystorePathProbe()
     private val listEntriesConsistencyProbe = ListEntriesConsistencyProbe()
     private val listEntriesBatchedProbe = ListEntriesBatchedProbe()
@@ -161,6 +172,9 @@ class TeeRepository(
                     keystore2Hook = deepChecks.keystore2Hook,
                     generateModeParcelFingerprint = deepChecks.generateModeParcelFingerprint,
                     grantDomainFullChainSplit = deepChecks.grantDomainFullChainSplit,
+                    syntheticGrantGranteeBlindReadback = deepChecks.syntheticGrantGranteeBlindReadback,
+                    syntheticGrantGetKeyEntryAccessVectorBlindness =
+                        deepChecks.syntheticGrantGetKeyEntryAccessVectorBlindness,
                     grantSelfDomainFullChainSplit = deepChecks.grantSelfDomainFullChainSplit,
                     legacyKeystorePath = deepChecks.legacyKeystorePath,
                     listEntriesConsistency = deepChecks.listEntriesConsistency,
@@ -254,6 +268,22 @@ class TeeRepository(
         val generateModeParcelFingerprint = generateModeParcelFingerprintProbe.inspect()
         val grantDomainFullChainSplit = grantDomainFullChainSplitProbe.inspect(useStrongBox = useStrongBox)
         val grantSelfDomainFullChainSplit = grantSelfDomainFullChainSplitProbe.inspect(useStrongBox = useStrongBox)
+        val syntheticGrantGranteeBlindReadback =
+            if (grantDomainFullChainSplit.hasDanger() || grantSelfDomainFullChainSplit.hasDanger()) {
+                SyntheticGrantGranteeBlindReadbackProbe.skippedAfterExistingGrantDanger()
+            } else {
+                syntheticGrantGranteeBlindReadbackProbe.inspect(useStrongBox = useStrongBox)
+            }
+        val syntheticGrantGetKeyEntryAccessVectorBlindness =
+            if (
+                grantDomainFullChainSplit.hasDanger() ||
+                grantSelfDomainFullChainSplit.hasDanger() ||
+                syntheticGrantGranteeBlindReadback.hasDanger()
+            ) {
+                SyntheticGrantGetKeyEntryAccessVectorBlindnessProbe.skippedAfterExistingGrantDanger()
+            } else {
+                syntheticGrantGetKeyEntryAccessVectorBlindnessProbe.inspect(useStrongBox = useStrongBox)
+            }
         val legacyKeystorePath = legacyKeystorePathProbe.inspect()
         val binderHookBootstrap = binderHookBootstrapProbe.inspect()
         val binderPatchMode = binderPatchModeProbe.inspect()
@@ -275,6 +305,8 @@ class TeeRepository(
             keystore2Hook = keystore2HookResult,
             generateModeParcelFingerprint = generateModeParcelFingerprint,
             grantDomainFullChainSplit = grantDomainFullChainSplit,
+            syntheticGrantGranteeBlindReadback = syntheticGrantGranteeBlindReadback,
+            syntheticGrantGetKeyEntryAccessVectorBlindness = syntheticGrantGetKeyEntryAccessVectorBlindness,
             grantSelfDomainFullChainSplit = grantSelfDomainFullChainSplit,
             legacyKeystorePath = legacyKeystorePath,
             listEntriesConsistency = listEntriesConsistencyResult,
@@ -299,6 +331,20 @@ class TeeRepository(
 
 }
 
+private fun GrantDomainFullChainSplitResult.hasDanger(): Boolean {
+    return anomalyKind == GrantDomainAnomalyKind.ISOLATED_CHAIN_SPLIT ||
+        anomalyKind == GrantDomainAnomalyKind.ISOLATED_GRANT_KEY_NOT_FOUND_AFTER_OWNER_CHAIN
+}
+
+private fun GrantSelfDomainFullChainSplitResult.hasDanger(): Boolean {
+    return anomalyKind == GrantSelfDomainAnomalyKind.SELF_CHAIN_SPLIT ||
+        anomalyKind == GrantSelfDomainAnomalyKind.SELF_GRANT_KEY_NOT_FOUND_AFTER_OWNER_CHAIN
+}
+
+private fun SyntheticGrantGranteeBlindReadbackResult.hasDanger(): Boolean {
+    return anomalyKind == SyntheticGrantGranteeBlindReadbackAnomalyKind.NON_GRANTEE_READBACK_ALLOWED
+}
+
 private data class DeferredChecks(
     val pairConsistency: com.eltavine.duckdetector.features.tee.data.verification.keystore.KeyPairConsistencyResult,
     val aesGcm: com.eltavine.duckdetector.features.tee.data.verification.keystore.AesGcmRoundTripResult,
@@ -311,6 +357,8 @@ private data class DeferredChecks(
     val keystore2Hook: com.eltavine.duckdetector.features.tee.data.verification.keystore.Keystore2HookResult,
     val generateModeParcelFingerprint: com.eltavine.duckdetector.features.tee.data.verification.keystore.Keystore2GenerateModeParcelFingerprintResult,
     val grantDomainFullChainSplit: com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantDomainFullChainSplitResult,
+    val syntheticGrantGranteeBlindReadback: com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGranteeBlindReadbackResult,
+    val syntheticGrantGetKeyEntryAccessVectorBlindness: com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGetKeyEntryAccessVectorBlindnessResult,
     val grantSelfDomainFullChainSplit: com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantSelfDomainFullChainSplitResult,
     val legacyKeystorePath: com.eltavine.duckdetector.features.tee.data.verification.keystore.LegacyKeystorePathResult,
     val listEntriesConsistency: com.eltavine.duckdetector.features.tee.data.verification.keystore.ListEntriesConsistencyResult,
@@ -383,6 +431,13 @@ private data class DeferredChecks(
             grantDomainFullChainSplit = com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantDomainFullChainSplitResult(
                 detail = "Grant-domain full-chain split probe skipped.",
             ),
+            syntheticGrantGranteeBlindReadback = com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGranteeBlindReadbackResult(
+                detail = "Grant caller-binding private binder probe skipped.",
+            ),
+            syntheticGrantGetKeyEntryAccessVectorBlindness =
+                com.eltavine.duckdetector.features.tee.data.verification.keystore.SyntheticGrantGetKeyEntryAccessVectorBlindnessResult(
+                    detail = "Grant access-vector private binder probe skipped.",
+                ),
             grantSelfDomainFullChainSplit = com.eltavine.duckdetector.features.tee.data.verification.keystore.GrantSelfDomainFullChainSplitResult(
                 detail = "Grant self-domain full-chain split probe skipped.",
             ),
