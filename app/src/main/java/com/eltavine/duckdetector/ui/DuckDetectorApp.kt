@@ -122,8 +122,8 @@ import com.eltavine.duckdetector.features.zygisk.presentation.ZygiskUiStage
 import com.eltavine.duckdetector.features.zygisk.presentation.ZygiskUiState
 import com.eltavine.duckdetector.features.zygisk.presentation.ZygiskViewModel
 import com.eltavine.duckdetector.ui.shell.AppDestination
-import com.eltavine.duckdetector.ui.shell.DetectorResultNoticeDialog
-import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeDialog
+// import com.eltavine.duckdetector.ui.shell.DetectorResultNoticeDialog
+// import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeDialog
 import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeEffect
 import com.eltavine.duckdetector.ui.shell.attentionDetectorTitles
 import com.eltavine.duckdetector.ui.shell.FloatingAppTabSwitcher
@@ -407,12 +407,12 @@ fun DuckDetectorApp() {
             )
 
             if (screenCaptureNoticeEventId > 0L) {
-                ScreenCaptureNoticeDialog(
-                    noticeInstanceKey = screenCaptureNoticeEventId,
-                    onDismiss = {
-                        screenCaptureNoticeEventId = 0L
-                    },
-                )
+                // ScreenCaptureNoticeDialog(
+                //     noticeInstanceKey = screenCaptureNoticeEventId,
+                //     onDismiss = {
+                //         screenCaptureNoticeEventId = 0L
+                //     },
+                // )
             }
         }
     }
@@ -709,11 +709,11 @@ private fun AppReadyShell(
             detectorResultNoticeKey != null &&
             detectorResultNoticeKey != dismissedDetectorResultNoticeKey
         ) {
-            DetectorResultNoticeDialog(
-                onDismiss = {
-                    dismissedDetectorResultNoticeKey = detectorResultNoticeKey
-                },
-            )
+            // DetectorResultNoticeDialog(
+            //     onDismiss = {
+            //         dismissedDetectorResultNoticeKey = detectorResultNoticeKey
+            //     },
+            // )
         }
     }
 }
