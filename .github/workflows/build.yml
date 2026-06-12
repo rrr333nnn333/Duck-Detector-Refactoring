@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build APK And Push To Telegram
+name: Build APK
 
 on:
-  push:
-    branches:
-      - master
+  # push:
+  #   branches:
+  #     - master
   workflow_dispatch:
 
 concurrency:
@@ -79,7 +79,7 @@ jobs:
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
@@ -119,100 +119,100 @@ jobs:
             sleep $((attempt * 5))
           done
 
-      - name: Validate credentials and prepare release keystore
-        id: keystore
-        shell: bash
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          set -euo pipefail
+      # - name: Validate credentials and prepare release keystore
+      #   id: keystore
+      #   shell: bash
+      #   env:
+      #     ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      #     ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      #     ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      #     ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      #    TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      #    TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      #   run: |
+      #     set -euo pipefail
 
-          required_secrets=(
-            ANDROID_KEYSTORE_BASE64
-            ANDROID_KEYSTORE_PASSWORD
-            ANDROID_KEY_ALIAS
-            ANDROID_KEY_PASSWORD
-            TELEGRAM_BOT_TOKEN
-            TELEGRAM_CHAT_ID
-          )
-          missing_secrets=()
-          for secret_name in "${required_secrets[@]}"; do
-            if [ -z "${!secret_name:-}" ]; then
-              missing_secrets+=("${secret_name}")
-            fi
-          done
-          if [ "${#missing_secrets[@]}" -ne 0 ]; then
-            printf 'Missing required secrets in the Telegram environment: %s\n' \
-              "$(IFS=', '; echo "${missing_secrets[*]}")" >&2
-            exit 1
-          fi
+      #     required_secrets=(
+      #       ANDROID_KEYSTORE_BASE64
+      #       ANDROID_KEYSTORE_PASSWORD
+      #       ANDROID_KEY_ALIAS
+      #       ANDROID_KEY_PASSWORD
+      #       TELEGRAM_BOT_TOKEN
+      #       TELEGRAM_CHAT_ID
+      #     )
+      #     missing_secrets=()
+      #     for secret_name in "${required_secrets[@]}"; do
+      #       if [ -z "${!secret_name:-}" ]; then
+      #         missing_secrets+=("${secret_name}")
+      #       fi
+      #     done
+      #     if [ "${#missing_secrets[@]}" -ne 0 ]; then
+      #       printf 'Missing required secrets in the Telegram environment: %s\n' \
+      #         "$(IFS=', '; echo "${missing_secrets[*]}")" >&2
+      #       exit 1
+      #     fi
 
-          keystore_path="$RUNNER_TEMP/release.keystore"
-          if ! printf '%s' "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > "$keystore_path"; then
-            echo "ANDROID_KEYSTORE_BASE64 is not valid base64." >&2
-            exit 1
-          fi
-          if [ ! -s "${keystore_path}" ]; then
-            echo "Decoded release keystore is empty." >&2
-            exit 1
-          fi
-          chmod 600 "${keystore_path}"
-          echo "keystore_path=$keystore_path" >> "$GITHUB_OUTPUT"
+      #    keystore_path="$RUNNER_TEMP/release.keystore"
+      #    if ! printf '%s' "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > "$keystore_path"; then
+      #      echo "ANDROID_KEYSTORE_BASE64 is not valid base64." >&2
+      #      exit 1
+      #    fi
+      #    if [ ! -s "${keystore_path}" ]; then
+      #      echo "Decoded release keystore is empty." >&2
+      #      exit 1
+      #    fi
+      #    chmod 600 "${keystore_path}"
+      #    echo "keystore_path=$keystore_path" >> "$GITHUB_OUTPUT"
 
-      - name: Extract expected signing fingerprint
-        id: signing_fingerprint
-        shell: bash
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.keystore_path }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: |
-          set -euo pipefail
+      # - name: Extract expected signing fingerprint
+      #   id: signing_fingerprint
+      #   shell: bash
+      #   env:
+      #     ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.keystore_path }}
+      #     ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      #     ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      #   run: |
+      #     set -euo pipefail
 
-          keytool_output=$(keytool -J-Duser.language=en -J-Duser.country=US -list -v \
-            -keystore "${ANDROID_KEYSTORE_PATH}" \
-            -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
-            -alias "${ANDROID_KEY_ALIAS}")
+      #     keytool_output=$(keytool -J-Duser.language=en -J-Duser.country=US -list -v \
+      #       -keystore "${ANDROID_KEYSTORE_PATH}" \
+      #       -storepass "${ANDROID_KEYSTORE_PASSWORD}" \
+      #       -alias "${ANDROID_KEY_ALIAS}")
 
-          expected_sha256=$(printf '%s\n' "${keytool_output}" \
-            | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' \
-            | head -n 1 \
-            | tr -d '[:space:]:' \
-            | tr '[:upper:]' '[:lower:]')
+      #     expected_sha256=$(printf '%s\n' "${keytool_output}" \
+      #       | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' \
+      #       | head -n 1 \
+      #       | tr -d '[:space:]:' \
+      #       | tr '[:upper:]' '[:lower:]')
 
-          owner_line=$(printf '%s\n' "${keytool_output}" \
-            | sed -n 's/^Owner: //p' \
-            | head -n 1)
+      #     owner_line=$(printf '%s\n' "${keytool_output}" \
+      #       | sed -n 's/^Owner: //p' \
+      #       | head -n 1)
 
-          signer_name=$(OWNER_LINE="${owner_line}" python3 - <<'PY'
-          import os
-          import re
+      #     signer_name=$(OWNER_LINE="${owner_line}" python3 - <<'PY'
+      #     import os
+      #     import re
 
-          owner = os.environ.get("OWNER_LINE", "").strip()
-          if not owner:
-              print("Unknown signer", end="")
-              raise SystemExit(0)
+      #     owner = os.environ.get("OWNER_LINE", "").strip()
+      #     if not owner:
+      #         print("Unknown signer", end="")
+      #         raise SystemExit(0)
 
-          match = re.search(r"(?:^|,\s*)CN=([^,]+)", owner)
-          if match:
-              print(match.group(1).strip(), end="")
-          else:
-              print(owner, end="")
-          PY
-          )
+      #     match = re.search(r"(?:^|,\s*)CN=([^,]+)", owner)
+      #     if match:
+      #         print(match.group(1).strip(), end="")
+      #     else:
+      #         print(owner, end="")
+      #     PY
+      #     )
 
-          if [ -z "${expected_sha256}" ]; then
-            echo "Failed to extract SHA-256 fingerprint from the configured keystore." >&2
-            exit 1
-          fi
+      #     if [ -z "${expected_sha256}" ]; then
+      #       echo "Failed to extract SHA-256 fingerprint from the configured keystore." >&2
+      #       exit 1
+      #     fi
 
-          echo "sha256=${expected_sha256}" >> "$GITHUB_OUTPUT"
-          echo "signer_name=${signer_name}" >> "$GITHUB_OUTPUT"
+      #     echo "sha256=${expected_sha256}" >> "$GITHUB_OUTPUT"
+      #     echo "signer_name=${signer_name}" >> "$GITHUB_OUTPUT"
 
       - name: Build release APK
         id: build
@@ -467,44 +467,44 @@ jobs:
             echo "${delimiter}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Verify APK signature
-        shell: bash
-        env:
-          APK_PATH: ${{ steps.metadata.outputs.apk_path }}
-          BUILD_TOOLS: ${{ steps.toolchain.outputs.build_tools }}
-          EXPECTED_SIGNER_SHA256: ${{ steps.signing_fingerprint.outputs.sha256 }}
-        run: |
-          set -euo pipefail
+      # - name: Verify APK signature
+      #   shell: bash
+      #   env:
+      #     APK_PATH: ${{ steps.metadata.outputs.apk_path }}
+      #     BUILD_TOOLS: ${{ steps.toolchain.outputs.build_tools }}
+      #     EXPECTED_SIGNER_SHA256: ${{ steps.signing_fingerprint.outputs.sha256 }}
+      #   run: |
+      #     set -euo pipefail
 
-          apksigner_output=$("${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS}/apksigner" verify --print-certs "${APK_PATH}")
-          printf '%s\n' "${apksigner_output}"
+      #     apksigner_output=$("${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS}/apksigner" verify --print-certs "${APK_PATH}")
+      #     printf '%s\n' "${apksigner_output}"
 
-          actual_sha256=$(APKSIGNER_OUTPUT="${apksigner_output}" python3 - <<'PY'
-          import os
+      #     actual_sha256=$(APKSIGNER_OUTPUT="${apksigner_output}" python3 - <<'PY'
+      #     import os
 
-          output = os.environ.get("APKSIGNER_OUTPUT", "")
-          marker = "certificate SHA-256 digest:"
-          for raw_line in output.splitlines():
-              if marker not in raw_line or "Source Stamp" in raw_line:
-                  continue
-              digest = raw_line.split(marker, 1)[1].replace(":", "").strip().lower()
-              if digest:
-                  print(digest, end="")
-                  break
-          PY
-          )
+      #     output = os.environ.get("APKSIGNER_OUTPUT", "")
+      #     marker = "certificate SHA-256 digest:"
+      #     for raw_line in output.splitlines():
+      #         if marker not in raw_line or "Source Stamp" in raw_line:
+      #             continue
+      #         digest = raw_line.split(marker, 1)[1].replace(":", "").strip().lower()
+      #         if digest:
+      #             print(digest, end="")
+      #             break
+      #     PY
+      #     )
 
-          if [ -z "${actual_sha256}" ]; then
-            echo "Failed to extract the APK signer SHA-256 digest." >&2
-            exit 1
-          fi
+      #     if [ -z "${actual_sha256}" ]; then
+      #       echo "Failed to extract the APK signer SHA-256 digest." >&2
+      #       exit 1
+      #     fi
 
-          if [ "${actual_sha256}" != "${EXPECTED_SIGNER_SHA256}" ]; then
-            echo "APK was not signed with the expected certificate." >&2
-            echo "Expected: ${EXPECTED_SIGNER_SHA256}" >&2
-            echo "Actual:   ${actual_sha256}" >&2
-            exit 1
-          fi
+      #     if [ "${actual_sha256}" != "${EXPECTED_SIGNER_SHA256}" ]; then
+      #       echo "APK was not signed with the expected certificate." >&2
+      #       echo "Expected: ${EXPECTED_SIGNER_SHA256}" >&2
+      #       echo "Actual:   ${actual_sha256}" >&2
+      #       exit 1
+      #     fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
@@ -1004,73 +1004,73 @@ jobs:
             exit 1
           fi
 
-      - name: Push APK to Telegram channel
-        shell: bash
-        env:
-          APK_PATH: ${{ steps.metadata.outputs.apk_path }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CAPTION: ${{ steps.metadata.outputs.caption }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          set -euo pipefail
+      # - name: Push APK to Telegram channel
+      #   shell: bash
+      #   env:
+      #     APK_PATH: ${{ steps.metadata.outputs.apk_path }}
+      #     TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      #     TELEGRAM_CAPTION: ${{ steps.metadata.outputs.caption }}
+      #     TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      #   run: |
+      #     set -euo pipefail
 
-          if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
-            echo "Missing Telegram secrets. Configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the Telegram environment." >&2
-            exit 1
-          fi
+      #     if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
+      #       echo "Missing Telegram secrets. Configure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in the Telegram environment." >&2
+      #       exit 1
+      #     fi
 
-          apk_size=$(stat -c '%s' "${APK_PATH}")
-          telegram_max_size=$((50 * 1024 * 1024))
-          if [ "${apk_size}" -gt "${telegram_max_size}" ]; then
-            echo "APK size ${apk_size} exceeds Telegram Bot API's 50 MiB upload limit." >&2
-            exit 1
-          fi
+      #    apk_size=$(stat -c '%s' "${APK_PATH}")
+      #    telegram_max_size=$((50 * 1024 * 1024))
+      #    if [ "${apk_size}" -gt "${telegram_max_size}" ]; then
+      #      echo "APK size ${apk_size} exceeds Telegram Bot API's 50 MiB upload limit." >&2
+      #      exit 1
+      #    fi
 
-          response_file=$(mktemp)
-          trap 'rm -f "${response_file}"' EXIT
-          if ! http_code=$(curl \
-            --silent \
-            --show-error \
-            --connect-timeout 15 \
-            --max-time 300 \
-            --proto '=https' \
-            --tlsv1.2 \
-            --output "${response_file}" \
-            --write-out "%{http_code}" \
-            -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-            -F "chat_id=${TELEGRAM_CHAT_ID}" \
-            -F "document=@${APK_PATH}" \
-            -F "parse_mode=HTML" \
-            --form-string "caption=${TELEGRAM_CAPTION}"); then
-            echo "Telegram upload failed due to a network or timeout error." >&2
-            exit 1
-          fi
+      #     response_file=$(mktemp)
+      #     trap 'rm -f "${response_file}"' EXIT
+      #    if ! http_code=$(curl \
+      #      --silent \
+      #      --show-error \
+      #      --connect-timeout 15 \
+      #      --max-time 300 \
+      #      --proto '=https' \
+      #      --tlsv1.2 \
+      #      --output "${response_file}" \
+      #      --write-out "%{http_code}" \
+      #       -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+      #       -F "chat_id=${TELEGRAM_CHAT_ID}" \
+      #       -F "document=@${APK_PATH}" \
+      #       -F "parse_mode=HTML" \
+      #       --form-string "caption=${TELEGRAM_CAPTION}"); then
+      #      echo "Telegram upload failed due to a network or timeout error." >&2
+      #      exit 1
+      #    fi
 
-          if [ "${http_code}" != "200" ]; then
-            echo "Telegram API returned HTTP ${http_code}." >&2
-            cat "${response_file}" >&2
-            exit 1
-          fi
+      #     if [ "${http_code}" != "200" ]; then
+      #       echo "Telegram API returned HTTP ${http_code}." >&2
+      #       cat "${response_file}" >&2
+      #       exit 1
+      #     fi
 
-          RESPONSE_FILE="${response_file}" python3 - <<'PY'
-          import json
-          import os
+      #     RESPONSE_FILE="${response_file}" python3 - <<'PY'
+      #     import json
+      #     import os
 
-          response_path = os.environ["RESPONSE_FILE"]
-          with open(response_path, "r", encoding="utf-8") as fh:
-              payload = json.load(fh)
+      #     response_path = os.environ["RESPONSE_FILE"]
+      #     with open(response_path, "r", encoding="utf-8") as fh:
+      #         payload = json.load(fh)
 
-          if not payload.get("ok"):
-              description = payload.get("description", "Telegram API returned ok=false")
-              raise SystemExit(description)
+      #     if not payload.get("ok"):
+      #         description = payload.get("description", "Telegram API returned ok=false")
+      #         raise SystemExit(description)
 
-          result = payload.get("result") or {}
-          message_id = result.get("message_id")
-          if message_id is None:
-              raise SystemExit("Telegram API succeeded but did not return a message_id.")
+      #     result = payload.get("result") or {}
+      #     message_id = result.get("message_id")
+      #     if message_id is None:
+      #         raise SystemExit("Telegram API succeeded but did not return a message_id.")
 
-          print(f"Telegram message_id: {message_id}")
-          PY
+      #     print(f"Telegram message_id: {message_id}")
+      #     PY
 
       - name: Clean up signing material
         if: always()
