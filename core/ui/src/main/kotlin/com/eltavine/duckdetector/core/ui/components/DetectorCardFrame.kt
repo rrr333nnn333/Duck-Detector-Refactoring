@@ -38,7 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+// import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -80,20 +80,20 @@ public fun DetectorCardFrame(
     val toggleDescription = stringResource(
         if (isExpanded) R.string.card_collapse else R.string.card_expand,
     )
-    val autoExpansionDirective = LocalDetectorAutoExpansionDirective.current
-    val detectorId = LocalDetectorIdentity.current
+    // val autoExpansionDirective = LocalDetectorAutoExpansionDirective.current
+    // val detectorId = LocalDetectorIdentity.current
 
-    LaunchedEffect(autoExpansionDirective.detectorIds, detectorId) {
-        if (detectorId == null || !autoExpansionDirective.shouldExpand(detectorId)) {
-            return@LaunchedEffect
-        }
-        if (expanded == null) {
-            internalExpanded = true
-        } else if (!isExpanded) {
-            onExpandedChange?.invoke(true)
-        }
-        autoExpansionDirective.onConsumed(detectorId)
-    }
+    // LaunchedEffect(autoExpansionDirective.detectorIds, detectorId) {
+    //     if (detectorId == null || !autoExpansionDirective.shouldExpand(detectorId)) {
+    //         return@LaunchedEffect
+    //     }
+    //     if (expanded == null) {
+    //         internalExpanded = true
+    //     } else if (!isExpanded) {
+    //         onExpandedChange?.invoke(true)
+    //     }
+    //     autoExpansionDirective.onConsumed(detectorId)
+    // }
 
     Card(
         modifier = modifier.fillMaxWidth(),
