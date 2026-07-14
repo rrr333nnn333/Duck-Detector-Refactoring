@@ -66,7 +66,7 @@ import com.eltavine.duckdetector.core.ui.components.AlphaBuildBanner
 // import com.eltavine.duckdetector.core.ui.components.AlphaBuildWarningOverlay
 import com.eltavine.duckdetector.core.ui.components.DetectorAutoExpansionDirective
 import com.eltavine.duckdetector.core.ui.components.LocalDetectorAutoExpansionDirective
-import com.eltavine.duckdetector.core.ui.components.ScreenshotWatermarkOverlay
+// import com.eltavine.duckdetector.core.ui.components.ScreenshotWatermarkOverlay
 import com.eltavine.duckdetector.core.ui.openExternalUri
 import com.eltavine.duckdetector.features.bootloader.presentation.BootloaderUiStage
 import com.eltavine.duckdetector.features.bootloader.presentation.BootloaderUiState
@@ -399,7 +399,7 @@ fun DuckDetectorApp() {
                 }
             }
 
-            ScreenshotWatermarkOverlay()
+            // ScreenshotWatermarkOverlay()
 
             if (agreementAccepted && startupPoliciesReady) {
                 AlphaBuildBanner()
