@@ -17,7 +17,7 @@ limitations under the License.
 <resources xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="MissingTranslation"
     tools:locale="en">
-    <string name="app_name">Duck Detector</string>
+    <string name="app_name">Duck Detector Fork by RΞNΞ</string>
     <string name="status_info">Info</string>
     <string name="status_all_clear">All Clear</string>
     <string name="status_warning">Warning</string>
