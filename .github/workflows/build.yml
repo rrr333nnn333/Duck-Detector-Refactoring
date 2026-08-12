@@ -515,494 +515,494 @@ jobs:
           compression-level: 0
           retention-days: 14
 
-      - name: Prepare nightly release note
-        if: github.ref == 'refs/heads/master'
-        shell: bash
-        run: |
-          set -euo pipefail
+      # - name: Prepare nightly release note
+      #   if: github.ref == 'refs/heads/master'
+      #   shell: bash
+      #   run: |
+      #     set -euo pipefail
 
-          cat <<EOF > nightly-release-note.md
-          Nightly APK build
+      #     cat <<EOF > nightly-release-note.md
+      #     Nightly APK build
 
-          Commit: ${GITHUB_SHA}
-          Branch: ${GITHUB_REF_NAME}
-          EOF
+      #     Commit: ${GITHUB_SHA}
+      #     Branch: ${GITHUB_REF_NAME}
+      #     EOF
 
-      - name: Snapshot previous Nightly release assets
-        id: previous_nightly_assets
-        if: github.ref == 'refs/heads/master'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
+      # - name: Snapshot previous Nightly release assets
+      #   id: previous_nightly_assets
+      #   if: github.ref == 'refs/heads/master'
+      #   shell: bash
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     set -euo pipefail
 
-          error_file="$RUNNER_TEMP/gh-api-previous-assets-error"
-          release_id=""
-          for attempt in 1 2 3 4; do
-            if release_id=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/nightly" \
-              --jq '.id' 2>"$error_file"); then
-              break
-            fi
-            if grep -q '(HTTP 404)' "$error_file"; then
-              echo 'asset_ids=[]' >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            if [ "$attempt" -eq 4 ]; then
-              cat "$error_file" >&2
-              exit 1
-            fi
-            echo "Nightly release lookup failed (attempt ${attempt}/4); retrying..." >&2
-            sleep $((attempt * 2))
-          done
+      #     error_file="$RUNNER_TEMP/gh-api-previous-assets-error"
+      #     release_id=""
+      #     for attempt in 1 2 3 4; do
+      #       if release_id=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/nightly" \
+      #         --jq '.id' 2>"$error_file"); then
+      #         break
+      #       fi
+      #       if grep -q '(HTTP 404)' "$error_file"; then
+      #         echo 'asset_ids=[]' >> "$GITHUB_OUTPUT"
+      #         exit 0
+      #       fi
+      #       if [ "$attempt" -eq 4 ]; then
+      #         cat "$error_file" >&2
+      #         exit 1
+      #       fi
+      #       echo "Nightly release lookup failed (attempt ${attempt}/4); retrying..." >&2
+      #       sleep $((attempt * 2))
+      #     done
 
-          if ! [[ "$release_id" =~ ^[0-9]+$ ]]; then
-            echo "GitHub returned an invalid Nightly release id: ${release_id}" >&2
-            exit 1
-          fi
+      #     if ! [[ "$release_id" =~ ^[0-9]+$ ]]; then
+      #       echo "GitHub returned an invalid Nightly release id: ${release_id}" >&2
+      #       exit 1
+      #     fi
 
-          assets_json=""
-          for attempt in 1 2 3 4; do
-            if assets_json=$(gh api --paginate --slurp \
-              "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
-              2>"$error_file"); then
-              break
-            fi
-            if [ "$attempt" -eq 4 ]; then
-              cat "$error_file" >&2
-              exit 1
-            fi
-            echo "Previous Nightly asset listing failed (attempt ${attempt}/4); retrying..." >&2
-            sleep $((attempt * 2))
-          done
+      #     assets_json=""
+      #     for attempt in 1 2 3 4; do
+      #       if assets_json=$(gh api --paginate --slurp \
+      #         "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
+      #         2>"$error_file"); then
+      #         break
+      #       fi
+      #       if [ "$attempt" -eq 4 ]; then
+      #         cat "$error_file" >&2
+      #         exit 1
+      #       fi
+      #       echo "Previous Nightly asset listing failed (attempt ${attempt}/4); retrying..." >&2
+      #       sleep $((attempt * 2))
+      #     done
 
-          asset_ids=$(jq -c '[.[][] | .id]' <<<"$assets_json")
-          if ! jq -e 'type == "array" and all(.[]; type == "number" and . > 0)' \
-            <<<"$asset_ids" >/dev/null; then
-            echo "Previous Nightly asset snapshot contains an invalid asset id." >&2
-            exit 1
-          fi
-          echo "asset_ids=${asset_ids}" >> "$GITHUB_OUTPUT"
+      #     asset_ids=$(jq -c '[.[][] | .id]' <<<"$assets_json")
+      #     if ! jq -e 'type == "array" and all(.[]; type == "number" and . > 0)' \
+      #       <<<"$asset_ids" >/dev/null; then
+      #       echo "Previous Nightly asset snapshot contains an invalid asset id." >&2
+      #       exit 1
+      #     fi
+      #     echo "asset_ids=${asset_ids}" >> "$GITHUB_OUTPUT"
 
-      - name: Update nightly APK release
-        id: nightly_release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
-        if: github.ref == 'refs/heads/master'
-        with:
-          tag_name: nightly
-          target_commitish: ${{ github.sha }}
-          name: Nightly APK Build
-          body_path: nightly-release-note.md
-          prerelease: true
-          make_latest: false
-          overwrite_files: true
-          fail_on_unmatched_files: true
-          files: |
-            ${{ steps.metadata.outputs.apk_path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Update nightly APK release
+      #   id: nightly_release
+      #   uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+      #   if: github.ref == 'refs/heads/master'
+      #   with:
+      #     tag_name: nightly
+      #     target_commitish: ${{ github.sha }}
+      #     name: Nightly APK Build
+      #     body_path: nightly-release-note.md
+      #     prerelease: true
+      #     make_latest: false
+      #     overwrite_files: true
+      #     fail_on_unmatched_files: true
+      #     files: |
+      #       ${{ steps.metadata.outputs.apk_path }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare Nightly update manifest
-        id: update_manifest
-        if: github.ref == 'refs/heads/master'
-        shell: bash
-        env:
-          APK_PATH: ${{ steps.metadata.outputs.apk_path }}
-          BUILD_BRANCH: ${{ github.ref_name }}
-          BUILD_TIME_ISO: ${{ steps.build.outputs.build_time_iso }}
-          RELEASE_ASSETS_JSON: ${{ steps.nightly_release.outputs.assets }}
-          VERSION_CODE: ${{ steps.metadata.outputs.version_code }}
-          VERSION_NAME: ${{ steps.metadata.outputs.version_name }}
-        run: |
-          set -euo pipefail
+      # - name: Prepare Nightly update manifest
+      #   id: update_manifest
+      #   if: github.ref == 'refs/heads/master'
+      #   shell: bash
+      #   env:
+      #     APK_PATH: ${{ steps.metadata.outputs.apk_path }}
+      #     BUILD_BRANCH: ${{ github.ref_name }}
+      #     BUILD_TIME_ISO: ${{ steps.build.outputs.build_time_iso }}
+      #     RELEASE_ASSETS_JSON: ${{ steps.nightly_release.outputs.assets }}
+      #     VERSION_CODE: ${{ steps.metadata.outputs.version_code }}
+      #     VERSION_NAME: ${{ steps.metadata.outputs.version_name }}
+      #   run: |
+      #     set -euo pipefail
 
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          import subprocess
-          from datetime import datetime, timezone
-          from pathlib import Path
-          from urllib.parse import unquote, urlsplit
+      #     python3 - <<'PY'
+      #     import hashlib
+      #     import json
+      #     import os
+      #     import subprocess
+      #     from datetime import datetime, timezone
+      #     from pathlib import Path
+      #     from urllib.parse import unquote, urlsplit
 
-          apk_path = Path(os.environ["APK_PATH"])
-          if not apk_path.is_file() or apk_path.stat().st_size <= 0:
-              raise SystemExit(f"Release APK is missing or empty: {apk_path}")
+      #     apk_path = Path(os.environ["APK_PATH"])
+      #     if not apk_path.is_file() or apk_path.stat().st_size <= 0:
+      #         raise SystemExit(f"Release APK is missing or empty: {apk_path}")
 
-          try:
-              release_assets = json.loads(os.environ["RELEASE_ASSETS_JSON"])
-          except json.JSONDecodeError as exc:
-              raise SystemExit(f"Release action returned invalid asset JSON: {exc}") from exc
-          if not isinstance(release_assets, list) or len(release_assets) != 1:
-              raise SystemExit(
-                  f"Expected exactly one uploaded APK asset, got {len(release_assets) if isinstance(release_assets, list) else 'invalid output'}."
-              )
+      #     try:
+      #         release_assets = json.loads(os.environ["RELEASE_ASSETS_JSON"])
+      #     except json.JSONDecodeError as exc:
+      #         raise SystemExit(f"Release action returned invalid asset JSON: {exc}") from exc
+      #     if not isinstance(release_assets, list) or len(release_assets) != 1:
+      #         raise SystemExit(
+      #             f"Expected exactly one uploaded APK asset, got {len(release_assets) if isinstance(release_assets, list) else 'invalid output'}."
+      #         )
 
-          apk_asset = release_assets[0]
-          apk_asset_id = apk_asset.get("id")
-          apk_name = apk_asset.get("name", "")
-          apk_url = apk_asset.get("browser_download_url", "")
-          if not isinstance(apk_asset_id, int) or apk_asset_id <= 0:
-              raise SystemExit(f"Release action returned an invalid APK asset id: {apk_asset_id!r}")
-          if apk_asset.get("state") != "uploaded":
-              raise SystemExit(f"APK release asset is not uploaded: {apk_asset.get('state')!r}")
-          if not isinstance(apk_name, str) or not apk_name.lower().endswith(".apk"):
-              raise SystemExit(f"Release action returned an invalid APK asset name: {apk_name!r}")
-          if not isinstance(apk_url, str):
-              raise SystemExit("Release action did not return an APK download URL.")
+      #     apk_asset = release_assets[0]
+      #     apk_asset_id = apk_asset.get("id")
+      #     apk_name = apk_asset.get("name", "")
+      #     apk_url = apk_asset.get("browser_download_url", "")
+      #     if not isinstance(apk_asset_id, int) or apk_asset_id <= 0:
+      #         raise SystemExit(f"Release action returned an invalid APK asset id: {apk_asset_id!r}")
+      #     if apk_asset.get("state") != "uploaded":
+      #         raise SystemExit(f"APK release asset is not uploaded: {apk_asset.get('state')!r}")
+      #     if not isinstance(apk_name, str) or not apk_name.lower().endswith(".apk"):
+      #         raise SystemExit(f"Release action returned an invalid APK asset name: {apk_name!r}")
+      #     if not isinstance(apk_url, str):
+      #         raise SystemExit("Release action did not return an APK download URL.")
 
-          expected_prefix = (
-              f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/nightly/"
-          )
-          url_name = unquote(Path(urlsplit(apk_url).path).name)
-          if not apk_url.startswith(expected_prefix) or url_name != apk_name:
-              raise SystemExit(f"Unexpected Nightly APK URL: {apk_url}")
+      #     expected_prefix = (
+      #         f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/nightly/"
+      #     )
+      #     url_name = unquote(Path(urlsplit(apk_url).path).name)
+      #     if not apk_url.startswith(expected_prefix) or url_name != apk_name:
+      #         raise SystemExit(f"Unexpected Nightly APK URL: {apk_url}")
 
-          apk_size = apk_path.stat().st_size
-          remote_size = apk_asset.get("size")
-          if remote_size != apk_size:
-              raise SystemExit(
-                  f"Uploaded APK size mismatch: local={apk_size}, release={remote_size!r}"
-              )
+      #     apk_size = apk_path.stat().st_size
+      #     remote_size = apk_asset.get("size")
+      #     if remote_size != apk_size:
+      #         raise SystemExit(
+      #             f"Uploaded APK size mismatch: local={apk_size}, release={remote_size!r}"
+      #         )
 
-          def git(*args: str) -> str:
-              return subprocess.check_output(["git", *args], text=True).strip()
+      #     def git(*args: str) -> str:
+      #         return subprocess.check_output(["git", *args], text=True).strip()
 
-          def iso8601_from_epoch(epoch: str) -> str:
-              return datetime.fromtimestamp(int(epoch), tz=timezone.utc) \
-                  .strftime("%Y-%m-%dT%H:%M:%SZ")
+      #     def iso8601_from_epoch(epoch: str) -> str:
+      #         return datetime.fromtimestamp(int(epoch), tz=timezone.utc) \
+      #             .strftime("%Y-%m-%dT%H:%M:%SZ")
 
-          sha256 = hashlib.sha256()
-          with apk_path.open("rb") as apk_file:
-              for chunk in iter(lambda: apk_file.read(1024 * 1024), b""):
-                  sha256.update(chunk)
-          apk_sha256 = sha256.hexdigest()
-          remote_digest = apk_asset.get("digest")
-          if remote_digest and str(remote_digest).lower() != f"sha256:{apk_sha256}":
-              raise SystemExit(
-                  f"Uploaded APK digest mismatch: local=sha256:{apk_sha256}, release={remote_digest}"
-              )
+      #     sha256 = hashlib.sha256()
+      #     with apk_path.open("rb") as apk_file:
+      #         for chunk in iter(lambda: apk_file.read(1024 * 1024), b""):
+      #             sha256.update(chunk)
+      #     apk_sha256 = sha256.hexdigest()
+      #     remote_digest = apk_asset.get("digest")
+      #     if remote_digest and str(remote_digest).lower() != f"sha256:{apk_sha256}":
+      #         raise SystemExit(
+      #             f"Uploaded APK digest mismatch: local=sha256:{apk_sha256}, release={remote_digest}"
+      #         )
 
-          commit_sha = git("rev-parse", "HEAD")
-          manifest = {
-              "schemaVersion": 1,
-              "channel": "nightly",
-              "branch": os.environ["BUILD_BRANCH"],
-              "versionName": os.environ["VERSION_NAME"],
-              "versionCode": int(os.environ["VERSION_CODE"]),
-              "commit": {
-                  "sha": commit_sha,
-                  "subject": git("log", "-1", "--format=%s", "HEAD"),
-                  "body": git("log", "-1", "--format=%b", "HEAD"),
-                  "authorName": git("log", "-1", "--format=%an", "HEAD"),
-                  "authoredAt": iso8601_from_epoch(git("log", "-1", "--format=%at", "HEAD")),
-              },
-              "builtAtUtc": os.environ["BUILD_TIME_ISO"],
-              "apk": {
-                  "name": apk_name,
-                  "downloadUrl": apk_url,
-                  "sizeBytes": apk_size,
-                  "sha256": apk_sha256,
-              },
-          }
+      #     commit_sha = git("rev-parse", "HEAD")
+      #     manifest = {
+      #         "schemaVersion": 1,
+      #         "channel": "nightly",
+      #         "branch": os.environ["BUILD_BRANCH"],
+      #         "versionName": os.environ["VERSION_NAME"],
+      #         "versionCode": int(os.environ["VERSION_CODE"]),
+      #         "commit": {
+      #             "sha": commit_sha,
+      #             "subject": git("log", "-1", "--format=%s", "HEAD"),
+      #             "body": git("log", "-1", "--format=%b", "HEAD"),
+      #             "authorName": git("log", "-1", "--format=%an", "HEAD"),
+      #             "authoredAt": iso8601_from_epoch(git("log", "-1", "--format=%at", "HEAD")),
+      #         },
+      #         "builtAtUtc": os.environ["BUILD_TIME_ISO"],
+      #         "apk": {
+      #             "name": apk_name,
+      #             "downloadUrl": apk_url,
+      #             "sizeBytes": apk_size,
+      #             "sha256": apk_sha256,
+      #         },
+      #     }
 
-          Path("update.json").write_text(
-              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
-              output.write(f"apk_asset_id={apk_asset_id}\n")
-          PY
+      #     Path("update.json").write_text(
+      #         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+      #         encoding="utf-8",
+      #     )
+      #     with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+      #         output.write(f"apk_asset_id={apk_asset_id}\n")
+      #     PY
 
-          jq -e '
-            .schemaVersion == 1 and
-            .channel == "nightly" and
-            .branch == env.BUILD_BRANCH and
-            .versionCode == (env.VERSION_CODE | tonumber) and
-            .commit.sha == env.GITHUB_SHA and
-            (.apk.name | test("^[^/]+\\.[Aa][Pp][Kk]$")) and
-            (.apk.sizeBytes > 0) and
-            (.apk.downloadUrl | startswith("https://github.com/")) and
-            (.apk.sha256 | test("^[0-9a-f]{64}$"))
-          ' update.json >/dev/null
+      #     jq -e '
+      #       .schemaVersion == 1 and
+      #       .channel == "nightly" and
+      #       .branch == env.BUILD_BRANCH and
+      #       .versionCode == (env.VERSION_CODE | tonumber) and
+      #       .commit.sha == env.GITHUB_SHA and
+      #       (.apk.name | test("^[^/]+\\.[Aa][Pp][Kk]$")) and
+      #       (.apk.sizeBytes > 0) and
+      #       (.apk.downloadUrl | startswith("https://github.com/")) and
+      #       (.apk.sha256 | test("^[0-9a-f]{64}$"))
+      #     ' update.json >/dev/null
 
-          {
-            echo "manifest_path=update.json"
-            echo "apk_name=$(jq -r '.apk.name' update.json)"
-            echo "apk_public_url=$(jq -r '.apk.downloadUrl' update.json)"
-          } >> "$GITHUB_OUTPUT"
+      #     {
+      #       echo "manifest_path=update.json"
+      #       echo "apk_name=$(jq -r '.apk.name' update.json)"
+      #       echo "apk_public_url=$(jq -r '.apk.downloadUrl' update.json)"
+      #     } >> "$GITHUB_OUTPUT"
 
-      - name: Publish Nightly update manifest
-        id: nightly_manifest_release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
-        if: github.ref == 'refs/heads/master'
-        with:
-          tag_name: nightly
-          target_commitish: ${{ github.sha }}
-          name: Nightly APK Build
-          body_path: nightly-release-note.md
-          prerelease: true
-          make_latest: false
-          overwrite_files: true
-          fail_on_unmatched_files: true
-          files: |
-            ${{ steps.update_manifest.outputs.manifest_path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Publish Nightly update manifest
+      #   id: nightly_manifest_release
+      #   uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+      #   if: github.ref == 'refs/heads/master'
+      #   with:
+      #     tag_name: nightly
+      #     target_commitish: ${{ github.sha }}
+      #     name: Nightly APK Build
+      #     body_path: nightly-release-note.md
+      #     prerelease: true
+      #     make_latest: false
+      #     overwrite_files: true
+      #     fail_on_unmatched_files: true
+      #     files: |
+      #       ${{ steps.update_manifest.outputs.manifest_path }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify published Nightly assets
-        if: github.ref == 'refs/heads/master'
-        shell: bash
-        env:
-          APK_ASSET_ID: ${{ steps.update_manifest.outputs.apk_asset_id }}
-          APK_NAME: ${{ steps.update_manifest.outputs.apk_name }}
-          APK_RELEASE_ID: ${{ steps.nightly_release.outputs.id }}
-          EXPECTED_APK_URL: ${{ steps.update_manifest.outputs.apk_public_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MANIFEST_ASSETS_JSON: ${{ steps.nightly_manifest_release.outputs.assets }}
-          MANIFEST_RELEASE_ID: ${{ steps.nightly_manifest_release.outputs.id }}
-        run: |
-          set -euo pipefail
+      # - name: Verify published Nightly assets
+      #   if: github.ref == 'refs/heads/master'
+      #   shell: bash
+      #   env:
+      #     APK_ASSET_ID: ${{ steps.update_manifest.outputs.apk_asset_id }}
+      #     APK_NAME: ${{ steps.update_manifest.outputs.apk_name }}
+      #     APK_RELEASE_ID: ${{ steps.nightly_release.outputs.id }}
+      #     EXPECTED_APK_URL: ${{ steps.update_manifest.outputs.apk_public_url }}
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     MANIFEST_ASSETS_JSON: ${{ steps.nightly_manifest_release.outputs.assets }}
+      #     MANIFEST_RELEASE_ID: ${{ steps.nightly_manifest_release.outputs.id }}
+      #   run: |
+      #     set -euo pipefail
 
-          gh_api_get() {
-            local endpoint="$1"
-            local error_file="$RUNNER_TEMP/gh-api-get-error"
-            local response
-            for attempt in 1 2 3 4; do
-              if response=$(gh api "$endpoint" 2>"$error_file"); then
-                printf '%s' "$response"
-                return 0
-              fi
-              if [ "$attempt" -eq 4 ]; then
-                cat "$error_file" >&2
-                return 1
-              fi
-              echo "GitHub API GET failed (attempt ${attempt}/4); retrying..." >&2
-              sleep $((attempt * 2))
-            done
-          }
+      #     gh_api_get() {
+      #       local endpoint="$1"
+      #       local error_file="$RUNNER_TEMP/gh-api-get-error"
+      #       local response
+      #       for attempt in 1 2 3 4; do
+      #         if response=$(gh api "$endpoint" 2>"$error_file"); then
+      #           printf '%s' "$response"
+      #           return 0
+      #         fi
+      #         if [ "$attempt" -eq 4 ]; then
+      #           cat "$error_file" >&2
+      #           return 1
+      #         fi
+      #         echo "GitHub API GET failed (attempt ${attempt}/4); retrying..." >&2
+      #         sleep $((attempt * 2))
+      #       done
+      #     }
 
-          download_release_asset() {
-            local asset_id="$1"
-            local destination="$2"
-            local error_file="$RUNNER_TEMP/gh-api-download-error"
-            for attempt in 1 2 3 4; do
-              if gh api \
-                -H "Accept: application/octet-stream" \
-                "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
-                >"$destination" 2>"$error_file" && [ -s "$destination" ]; then
-                return 0
-              fi
-              if [ "$attempt" -eq 4 ]; then
-                cat "$error_file" >&2
-                return 1
-              fi
-              echo "Release asset download failed (attempt ${attempt}/4); retrying..." >&2
-              sleep $((attempt * 2))
-            done
-          }
+      #     download_release_asset() {
+      #       local asset_id="$1"
+      #       local destination="$2"
+      #       local error_file="$RUNNER_TEMP/gh-api-download-error"
+      #       for attempt in 1 2 3 4; do
+      #         if gh api \
+      #           -H "Accept: application/octet-stream" \
+      #           "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
+      #           >"$destination" 2>"$error_file" && [ -s "$destination" ]; then
+      #           return 0
+      #         fi
+      #         if [ "$attempt" -eq 4 ]; then
+      #           cat "$error_file" >&2
+      #           return 1
+      #         fi
+      #         echo "Release asset download failed (attempt ${attempt}/4); retrying..." >&2
+      #         sleep $((attempt * 2))
+      #       done
+      #     }
 
-          if ! [[ "$APK_ASSET_ID" =~ ^[0-9]+$ && "$APK_RELEASE_ID" =~ ^[0-9]+$ && "$MANIFEST_RELEASE_ID" =~ ^[0-9]+$ ]]; then
-            echo "Release action returned an invalid asset or release id." >&2
-            exit 1
-          fi
-          if [ "$APK_RELEASE_ID" != "$MANIFEST_RELEASE_ID" ]; then
-            echo "APK and manifest were uploaded to different releases." >&2
-            exit 1
-          fi
+      #     if ! [[ "$APK_ASSET_ID" =~ ^[0-9]+$ && "$APK_RELEASE_ID" =~ ^[0-9]+$ && "$MANIFEST_RELEASE_ID" =~ ^[0-9]+$ ]]; then
+      #       echo "Release action returned an invalid asset or release id." >&2
+      #       exit 1
+      #     fi
+      #     if [ "$APK_RELEASE_ID" != "$MANIFEST_RELEASE_ID" ]; then
+      #       echo "APK and manifest were uploaded to different releases." >&2
+      #       exit 1
+      #     fi
 
-          if ! jq -e '
-            type == "array" and
-            length == 1 and
-            .[0].name == "update.json" and
-            .[0].state == "uploaded" and
-            (.[0].id | type == "number" and . > 0)
-          ' <<<"$MANIFEST_ASSETS_JSON" >/dev/null; then
-            echo "Manifest release action returned unexpected asset metadata." >&2
-            exit 1
-          fi
-          manifest_asset_id=$(jq -r '.[0].id' <<<"$MANIFEST_ASSETS_JSON")
+      #     if ! jq -e '
+      #       type == "array" and
+      #       length == 1 and
+      #       .[0].name == "update.json" and
+      #       .[0].state == "uploaded" and
+      #       (.[0].id | type == "number" and . > 0)
+      #     ' <<<"$MANIFEST_ASSETS_JSON" >/dev/null; then
+      #       echo "Manifest release action returned unexpected asset metadata." >&2
+      #       exit 1
+      #     fi
+      #     manifest_asset_id=$(jq -r '.[0].id' <<<"$MANIFEST_ASSETS_JSON")
 
-          expected_apk_size=$(jq -r '.apk.sizeBytes' update.json)
-          expected_apk_digest="sha256:$(jq -r '.apk.sha256' update.json)"
-          apk_asset_json=$(gh_api_get "repos/${GITHUB_REPOSITORY}/releases/assets/${APK_ASSET_ID}")
-          if ! jq -e \
-            --arg name "$APK_NAME" \
-            --arg url "$EXPECTED_APK_URL" \
-            --arg digest "$expected_apk_digest" \
-            --argjson size "$expected_apk_size" \
-            '.name == $name and
-             .browser_download_url == $url and
-             .state == "uploaded" and
-             .size == $size and
-             (.digest == null or (.digest | ascii_downcase) == $digest)' \
-            <<<"$apk_asset_json" >/dev/null; then
-            echo "Published APK metadata does not match the generated manifest." >&2
-            exit 1
-          fi
+      #     expected_apk_size=$(jq -r '.apk.sizeBytes' update.json)
+      #     expected_apk_digest="sha256:$(jq -r '.apk.sha256' update.json)"
+      #     apk_asset_json=$(gh_api_get "repos/${GITHUB_REPOSITORY}/releases/assets/${APK_ASSET_ID}")
+      #     if ! jq -e \
+      #       --arg name "$APK_NAME" \
+      #       --arg url "$EXPECTED_APK_URL" \
+      #       --arg digest "$expected_apk_digest" \
+      #       --argjson size "$expected_apk_size" \
+      #       '.name == $name and
+      #        .browser_download_url == $url and
+      #        .state == "uploaded" and
+      #        .size == $size and
+      #        (.digest == null or (.digest | ascii_downcase) == $digest)' \
+      #       <<<"$apk_asset_json" >/dev/null; then
+      #       echo "Published APK metadata does not match the generated manifest." >&2
+      #       exit 1
+      #     fi
 
-          manifest_asset_json=$(gh_api_get "repos/${GITHUB_REPOSITORY}/releases/assets/${manifest_asset_id}")
-          if ! jq -e '.name == "update.json" and .state == "uploaded" and .size > 0' \
-            <<<"$manifest_asset_json" >/dev/null; then
-            echo "Published manifest asset metadata is invalid." >&2
-            exit 1
-          fi
+      #     manifest_asset_json=$(gh_api_get "repos/${GITHUB_REPOSITORY}/releases/assets/${manifest_asset_id}")
+      #     if ! jq -e '.name == "update.json" and .state == "uploaded" and .size > 0' \
+      #       <<<"$manifest_asset_json" >/dev/null; then
+      #       echo "Published manifest asset metadata is invalid." >&2
+      #       exit 1
+      #     fi
 
-          download_release_asset "$manifest_asset_id" published-update.json
-          if ! cmp --silent update.json published-update.json; then
-            echo "Published Nightly manifest differs from the generated manifest." >&2
-            echo "Expected SHA-256: $(sha256sum update.json | cut -d' ' -f1)" >&2
-            echo "Actual SHA-256:   $(sha256sum published-update.json | cut -d' ' -f1)" >&2
-            exit 1
-          fi
+      #     download_release_asset "$manifest_asset_id" published-update.json
+      #     if ! cmp --silent update.json published-update.json; then
+      #       echo "Published Nightly manifest differs from the generated manifest." >&2
+      #       echo "Expected SHA-256: $(sha256sum update.json | cut -d' ' -f1)" >&2
+      #       echo "Actual SHA-256:   $(sha256sum published-update.json | cut -d' ' -f1)" >&2
+      #       exit 1
+      #     fi
 
-      - name: Delete previous Nightly release assets
-        if: github.ref == 'refs/heads/master'
-        shell: bash
-        env:
-          APK_ASSET_ID: ${{ steps.update_manifest.outputs.apk_asset_id }}
-          APK_NAME: ${{ steps.update_manifest.outputs.apk_name }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MANIFEST_ASSETS_JSON: ${{ steps.nightly_manifest_release.outputs.assets }}
-          PREVIOUS_ASSET_IDS: ${{ steps.previous_nightly_assets.outputs.asset_ids }}
-          RELEASE_ID: ${{ steps.nightly_release.outputs.id }}
-        run: |
-          set -euo pipefail
+      # - name: Delete previous Nightly release assets
+      #   if: github.ref == 'refs/heads/master'
+      #   shell: bash
+      #   env:
+      #     APK_ASSET_ID: ${{ steps.update_manifest.outputs.apk_asset_id }}
+      #     APK_NAME: ${{ steps.update_manifest.outputs.apk_name }}
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     MANIFEST_ASSETS_JSON: ${{ steps.nightly_manifest_release.outputs.assets }}
+      #     PREVIOUS_ASSET_IDS: ${{ steps.previous_nightly_assets.outputs.asset_ids }}
+      #     RELEASE_ID: ${{ steps.nightly_release.outputs.id }}
+      #   run: |
+      #     set -euo pipefail
 
-          if ! [[ "$APK_ASSET_ID" =~ ^[0-9]+$ && "$RELEASE_ID" =~ ^[0-9]+$ ]]; then
-            echo "Release action returned an invalid asset or release id." >&2
-            exit 1
-          fi
-          if ! jq -e 'type == "array" and all(.[]; type == "number" and . > 0)' \
-            <<<"$PREVIOUS_ASSET_IDS" >/dev/null; then
-            echo "Previous Nightly asset snapshot is invalid." >&2
-            exit 1
-          fi
-          if ! jq -e '
-            type == "array" and
-            length == 1 and
-            .[0].name == "update.json" and
-            .[0].state == "uploaded" and
-            (.[0].id | type == "number" and . > 0)
-          ' <<<"$MANIFEST_ASSETS_JSON" >/dev/null; then
-            echo "Manifest release action returned unexpected asset metadata." >&2
-            exit 1
-          fi
-          manifest_asset_id=$(jq -r '.[0].id' <<<"$MANIFEST_ASSETS_JSON")
+      #     if ! [[ "$APK_ASSET_ID" =~ ^[0-9]+$ && "$RELEASE_ID" =~ ^[0-9]+$ ]]; then
+      #       echo "Release action returned an invalid asset or release id." >&2
+      #       exit 1
+      #     fi
+      #     if ! jq -e 'type == "array" and all(.[]; type == "number" and . > 0)' \
+      #       <<<"$PREVIOUS_ASSET_IDS" >/dev/null; then
+      #       echo "Previous Nightly asset snapshot is invalid." >&2
+      #       exit 1
+      #     fi
+      #     if ! jq -e '
+      #       type == "array" and
+      #       length == 1 and
+      #       .[0].name == "update.json" and
+      #       .[0].state == "uploaded" and
+      #       (.[0].id | type == "number" and . > 0)
+      #     ' <<<"$MANIFEST_ASSETS_JSON" >/dev/null; then
+      #       echo "Manifest release action returned unexpected asset metadata." >&2
+      #       exit 1
+      #     fi
+      #     manifest_asset_id=$(jq -r '.[0].id' <<<"$MANIFEST_ASSETS_JSON")
 
-          while IFS= read -r asset_id; do
-            [ -n "$asset_id" ] || continue
-            if [ "$asset_id" = "$APK_ASSET_ID" ] || [ "$asset_id" = "$manifest_asset_id" ]; then
-              continue
-            fi
+      #     while IFS= read -r asset_id; do
+      #       [ -n "$asset_id" ] || continue
+      #       if [ "$asset_id" = "$APK_ASSET_ID" ] || [ "$asset_id" = "$manifest_asset_id" ]; then
+      #         continue
+      #       fi
 
-            delete_error_file="$RUNNER_TEMP/gh-api-delete-${asset_id}-error"
-            for attempt in 1 2 3 4; do
-              if gh api -X DELETE \
-                "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
-                >/dev/null 2>"$delete_error_file"; then
-                echo "Deleted previous Nightly asset id ${asset_id}."
-                break
-              fi
-              if grep -q '(HTTP 404)' "$delete_error_file"; then
-                echo "Previous Nightly asset id ${asset_id} was already replaced or deleted."
-                break
-              fi
-              if [ "$attempt" -eq 4 ]; then
-                cat "$delete_error_file" >&2
-                exit 1
-              fi
-              echo "Release asset deletion failed (attempt ${attempt}/4); retrying..." >&2
-              sleep $((attempt * 2))
-            done
-          done < <(jq -r '.[]' <<<"$PREVIOUS_ASSET_IDS")
+      #       delete_error_file="$RUNNER_TEMP/gh-api-delete-${asset_id}-error"
+      #       for attempt in 1 2 3 4; do
+      #         if gh api -X DELETE \
+      #           "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
+      #           >/dev/null 2>"$delete_error_file"; then
+      #           echo "Deleted previous Nightly asset id ${asset_id}."
+      #           break
+      #         fi
+      #         if grep -q '(HTTP 404)' "$delete_error_file"; then
+      #           echo "Previous Nightly asset id ${asset_id} was already replaced or deleted."
+      #           break
+      #         fi
+      #         if [ "$attempt" -eq 4 ]; then
+      #           cat "$delete_error_file" >&2
+      #           exit 1
+      #         fi
+      #         echo "Release asset deletion failed (attempt ${attempt}/4); retrying..." >&2
+      #         sleep $((attempt * 2))
+      #       done
+      #     done < <(jq -r '.[]' <<<"$PREVIOUS_ASSET_IDS")
 
-          final_assets_verified=false
-          error_file="$RUNNER_TEMP/gh-api-final-assets-error"
-          for attempt in {1..12}; do
-            if assets_json=$(gh api --paginate --slurp \
-              "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?per_page=100" \
-              2>"$error_file"); then
-              if jq -e \
-                --arg apk_name "$APK_NAME" \
-                --argjson apk_id "$APK_ASSET_ID" \
-                --argjson manifest_id "$manifest_asset_id" \
-                '[.[][]] as $assets |
-                 ($assets | length) == 2 and
-                 ([$assets[] | select(
-                   .id == $apk_id and
-                   .name == $apk_name and
-                   .state == "uploaded"
-                 )] | length) == 1 and
-                 ([$assets[] | select(
-                   .id == $manifest_id and
-                   .name == "update.json" and
-                   .state == "uploaded"
-                 )] | length) == 1' \
-                <<<"$assets_json" >/dev/null; then
-                final_assets_verified=true
-                break
-              fi
-              echo "Nightly release still exposes previous assets (attempt ${attempt}/12); waiting for propagation..." >&2
-            elif [ "$attempt" -eq 12 ]; then
-              cat "$error_file" >&2
-            else
-              echo "Final Nightly asset listing failed (attempt ${attempt}/12); retrying..." >&2
-            fi
-            if [ "$attempt" -lt 12 ]; then
-              sleep 5
-            fi
-          done
+      #     final_assets_verified=false
+      #     error_file="$RUNNER_TEMP/gh-api-final-assets-error"
+      #     for attempt in {1..12}; do
+      #       if assets_json=$(gh api --paginate --slurp \
+      #         "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?per_page=100" \
+      #         2>"$error_file"); then
+      #         if jq -e \
+      #           --arg apk_name "$APK_NAME" \
+      #           --argjson apk_id "$APK_ASSET_ID" \
+      #           --argjson manifest_id "$manifest_asset_id" \
+      #           '[.[][]] as $assets |
+      #            ($assets | length) == 2 and
+      #            ([$assets[] | select(
+      #              .id == $apk_id and
+      #              .name == $apk_name and
+      #              .state == "uploaded"
+      #            )] | length) == 1 and
+      #            ([$assets[] | select(
+      #              .id == $manifest_id and
+      #              .name == "update.json" and
+      #              .state == "uploaded"
+      #            )] | length) == 1' \
+      #           <<<"$assets_json" >/dev/null; then
+      #           final_assets_verified=true
+      #           break
+      #         fi
+      #         echo "Nightly release still exposes previous assets (attempt ${attempt}/12); waiting for propagation..." >&2
+      #       elif [ "$attempt" -eq 12 ]; then
+      #         cat "$error_file" >&2
+      #       else
+      #         echo "Final Nightly asset listing failed (attempt ${attempt}/12); retrying..." >&2
+      #       fi
+      #       if [ "$attempt" -lt 12 ]; then
+      #         sleep 5
+      #       fi
+      #     done
 
-          if [ "$final_assets_verified" != true ]; then
-            echo "Nightly release did not converge to exactly the current APK and update.json." >&2
-            exit 1
-          fi
+      #     if [ "$final_assets_verified" != true ]; then
+      #       echo "Nightly release did not converge to exactly the current APK and update.json." >&2
+      #       exit 1
+      #     fi
 
-      - name: Move Nightly tag to published commit
-        if: github.ref == 'refs/heads/master'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
+      # - name: Move Nightly tag to published commit
+      #   if: github.ref == 'refs/heads/master'
+      #   shell: bash
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     set -euo pipefail
 
-          error_file="$RUNNER_TEMP/gh-api-tag-error"
-          for attempt in 1 2 3 4; do
-            if gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/nightly" \
-              -f sha="$GITHUB_SHA" \
-              -F force=true >/dev/null 2>"$error_file"; then
-              break
-            fi
-            if [ "$attempt" -eq 4 ]; then
-              cat "$error_file" >&2
-              exit 1
-            fi
-            echo "Nightly tag update failed (attempt ${attempt}/4); retrying..." >&2
-            sleep $((attempt * 2))
-          done
+      #     error_file="$RUNNER_TEMP/gh-api-tag-error"
+      #     for attempt in 1 2 3 4; do
+      #       if gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/nightly" \
+      #         -f sha="$GITHUB_SHA" \
+      #         -F force=true >/dev/null 2>"$error_file"; then
+      #         break
+      #       fi
+      #       if [ "$attempt" -eq 4 ]; then
+      #         cat "$error_file" >&2
+      #         exit 1
+      #       fi
+      #       echo "Nightly tag update failed (attempt ${attempt}/4); retrying..." >&2
+      #       sleep $((attempt * 2))
+      #     done
 
-          tag_sha=""
-          for attempt in {1..12}; do
-            if tag_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/nightly" \
-              --jq '.object.sha' 2>"$error_file"); then
-              if [ "$tag_sha" = "$GITHUB_SHA" ]; then
-                break
-              fi
-              echo "Nightly tag still points to ${tag_sha} (attempt ${attempt}/12); waiting for GitHub ref propagation..." >&2
-            elif [ "$attempt" -eq 12 ]; then
-              cat "$error_file" >&2
-            else
-              echo "Nightly tag verification request failed (attempt ${attempt}/12); retrying..." >&2
-            fi
-            if [ "$attempt" -lt 12 ]; then
-              sleep 5
-            fi
-          done
-          if [ "$tag_sha" != "$GITHUB_SHA" ]; then
-            echo "Nightly tag verification failed: expected ${GITHUB_SHA}, got ${tag_sha}." >&2
-            exit 1
-          fi
+      #     tag_sha=""
+      #     for attempt in {1..12}; do
+      #       if tag_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/nightly" \
+      #         --jq '.object.sha' 2>"$error_file"); then
+      #         if [ "$tag_sha" = "$GITHUB_SHA" ]; then
+      #           break
+      #         fi
+      #         echo "Nightly tag still points to ${tag_sha} (attempt ${attempt}/12); waiting for GitHub ref propagation..." >&2
+      #       elif [ "$attempt" -eq 12 ]; then
+      #         cat "$error_file" >&2
+      #       else
+      #         echo "Nightly tag verification request failed (attempt ${attempt}/12); retrying..." >&2
+      #       fi
+      #       if [ "$attempt" -lt 12 ]; then
+      #         sleep 5
+      #       fi
+      #     done
+      #     if [ "$tag_sha" != "$GITHUB_SHA" ]; then
+      #       echo "Nightly tag verification failed: expected ${GITHUB_SHA}, got ${tag_sha}." >&2
+      #       exit 1
+      #     fi
 
       # - name: Push APK to Telegram channel
       #   shell: bash
@@ -1072,14 +1072,14 @@ jobs:
       #     print(f"Telegram message_id: {message_id}")
       #     PY
 
-      - name: Clean up signing material
-        if: always()
-        shell: bash
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.keystore_path }}
-        run: |
-          set -euo pipefail
-          keystore_path="${ANDROID_KEYSTORE_PATH:-$RUNNER_TEMP/release.keystore}"
-          if [ -f "${keystore_path}" ]; then
-            rm -f -- "${keystore_path}"
-          fi
+      # - name: Clean up signing material
+      #   if: always()
+      #   shell: bash
+      #   env:
+      #     ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.keystore_path }}
+      #   run: |
+      #     set -euo pipefail
+      #     keystore_path="${ANDROID_KEYSTORE_PATH:-$RUNNER_TEMP/release.keystore}"
+      #     if [ -f "${keystore_path}" ]; then
+      #       rm -f -- "${keystore_path}"
+      #     fi
