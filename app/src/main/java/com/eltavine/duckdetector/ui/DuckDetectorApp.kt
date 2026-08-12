@@ -64,7 +64,7 @@ import com.eltavine.duckdetector.core.packagevisibility.preferences.PackageVisib
 import com.eltavine.duckdetector.core.startup.legal.AgreementAcceptancePrefs
 import com.eltavine.duckdetector.core.startup.legal.AgreementAcceptanceStore
 // import com.eltavine.duckdetector.core.startup.legal.AgreementScreen
-import com.eltavine.duckdetector.core.ui.components.AlphaBuildBanner
+// import com.eltavine.duckdetector.core.ui.components.AlphaBuildBanner
 // import com.eltavine.duckdetector.core.ui.components.AlphaBuildWarningOverlay
 import com.eltavine.duckdetector.core.ui.components.DetectorAutoExpansionDirective
 import com.eltavine.duckdetector.core.ui.components.LocalDetectorAutoExpansionDirective
@@ -395,9 +395,9 @@ fun DuckDetectorApp() {
 
             ScreenshotWatermarkOverlay()
 
-            if (agreementAccepted && startupPoliciesReady) {
-                AlphaBuildBanner()
-            }
+            // if (agreementAccepted && startupPoliciesReady) {
+            //     AlphaBuildBanner()
+            // }
 
             // AlphaBuildWarningOverlay(
             //     forceVisible = agreementAccepted &&
