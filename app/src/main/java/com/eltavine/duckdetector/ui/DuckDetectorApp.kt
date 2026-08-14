@@ -63,9 +63,9 @@ import com.eltavine.duckdetector.core.packagevisibility.preferences.PackageVisib
 import com.eltavine.duckdetector.core.packagevisibility.preferences.PackageVisibilityReviewStore
 import com.eltavine.duckdetector.core.startup.legal.AgreementAcceptancePrefs
 import com.eltavine.duckdetector.core.startup.legal.AgreementAcceptanceStore
-import com.eltavine.duckdetector.core.startup.legal.AgreementScreen
+// import com.eltavine.duckdetector.core.startup.legal.AgreementScreen
 import com.eltavine.duckdetector.core.ui.components.AlphaBuildBanner
-import com.eltavine.duckdetector.core.ui.components.AlphaBuildWarningOverlay
+// import com.eltavine.duckdetector.core.ui.components.AlphaBuildWarningOverlay
 import com.eltavine.duckdetector.core.ui.components.DetectorAutoExpansionDirective
 import com.eltavine.duckdetector.core.ui.components.LocalDetectorAutoExpansionDirective
 import com.eltavine.duckdetector.core.ui.components.ScreenshotWatermarkOverlay
@@ -131,8 +131,8 @@ import com.eltavine.duckdetector.features.zygisk.presentation.ZygiskUiStage
 import com.eltavine.duckdetector.features.zygisk.presentation.ZygiskUiState
 import com.eltavine.duckdetector.features.zygisk.presentation.ZygiskViewModel
 import com.eltavine.duckdetector.ui.shell.AppDestination
-import com.eltavine.duckdetector.ui.shell.DetectorResultNoticeDialog
-import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeDialog
+// import com.eltavine.duckdetector.ui.shell.DetectorResultNoticeDialog
+// import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeDialog
 import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeEffect
 import com.eltavine.duckdetector.ui.shell.attentionDetectorTitles
 import com.eltavine.duckdetector.ui.shell.FloatingAppTabSwitcher
@@ -177,7 +177,7 @@ fun DuckDetectorApp() {
             value = currentPrefs
         }
     }
-    val agreementAccepted = agreementPrefs?.accepted == true
+    val agreementAccepted = true
     val teePrefs by produceState<TeeNetworkPrefs?>(
         initialValue = null,
         key1 = consentStore,
@@ -309,16 +309,16 @@ fun DuckDetectorApp() {
                     StartupBootstrapLoadingScreen(modifier = Modifier.fillMaxSize())
                 }
 
-                !agreementAccepted -> {
-                    AgreementScreen(
-                        onAgree = {
-                            scope.launch {
-                                agreementStore.accept()
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                // !agreementAccepted -> {
+                //     AgreementScreen(
+                //         onAgree = {
+                //             scope.launch {
+                //                 agreementStore.accept()
+                //             }
+                //         },
+                //         modifier = Modifier.fillMaxSize(),
+                //     )
+                // }
 
                 startupPoliciesReady -> {
                     AppReadyShell(
@@ -399,23 +399,23 @@ fun DuckDetectorApp() {
                 AlphaBuildBanner()
             }
 
-            AlphaBuildWarningOverlay(
-                forceVisible = agreementAccepted &&
-                        requiresAlphaAcknowledgement &&
-                        !alphaAcknowledged,
-                onDismissed = {
-                    alphaAcknowledged = true
-                },
-            )
+            // AlphaBuildWarningOverlay(
+            //     forceVisible = agreementAccepted &&
+            //             requiresAlphaAcknowledgement &&
+            //             !alphaAcknowledged,
+            //     onDismissed = {
+            //         alphaAcknowledged = true
+            //     },
+            // )
 
-            if (screenCaptureNoticeEventId > 0L) {
-                ScreenCaptureNoticeDialog(
-                    noticeInstanceKey = screenCaptureNoticeEventId,
-                    onDismiss = {
-                        screenCaptureNoticeEventId = 0L
-                    },
-                )
-            }
+            // if (screenCaptureNoticeEventId > 0L) {
+            //     ScreenCaptureNoticeDialog(
+            //         noticeInstanceKey = screenCaptureNoticeEventId,
+            //         onDismiss = {
+            //             screenCaptureNoticeEventId = 0L
+            //         },
+            //     )
+            // }
         }
     }
 }
@@ -723,11 +723,11 @@ private fun AppReadyShell(
             detectorResultNoticeKey != null &&
             detectorResultNoticeKey != dismissedDetectorResultNoticeKey
         ) {
-            DetectorResultNoticeDialog(
-                onDismiss = {
-                    dismissedDetectorResultNoticeKey = detectorResultNoticeKey
-                },
-            )
+            // DetectorResultNoticeDialog(
+            //     onDismiss = {
+            //         dismissedDetectorResultNoticeKey = detectorResultNoticeKey
+            //     },
+            // )
         } else if (
             canShowUpdateDialog &&
             updateUiState.isDialogVisible &&
