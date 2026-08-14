@@ -45,14 +45,14 @@ import com.eltavine.duckdetector.sdk.DuckDetector
 import com.eltavine.duckdetector.sdk.PackageVisibility
 import com.eltavine.duckdetector.startup.legal.AgreementAcceptancePrefs
 import com.eltavine.duckdetector.startup.legal.AgreementAcceptanceStore
-import com.eltavine.duckdetector.startup.legal.AgreementScreen
+// import com.eltavine.duckdetector.startup.legal.AgreementScreen
 import com.eltavine.duckdetector.core.detector.ConsentDecision
 import com.eltavine.duckdetector.core.detector.ConsentId
 import com.eltavine.duckdetector.core.ui.components.AlphaBuildBanner
-import com.eltavine.duckdetector.core.ui.components.AlphaBuildWarningOverlay
+// import com.eltavine.duckdetector.core.ui.components.AlphaBuildWarningOverlay
 import com.eltavine.duckdetector.core.ui.components.ScreenshotWatermarkOverlay
 import com.eltavine.duckdetector.ui.shell.AppDestination
-import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeDialog
+// import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeDialog
 import com.eltavine.duckdetector.ui.shell.ScreenCaptureNoticeEffect
 import com.eltavine.duckdetector.ui.shell.StartupPolicyScreen
 import com.eltavine.duckdetector.ui.shell.combineConsentDecisions
@@ -90,7 +90,7 @@ fun DuckDetectorApp() {
             value = currentPrefs
         }
     }
-    val agreementAccepted = agreementPrefs?.accepted == true
+    val agreementAccepted = true
     val consentDecisions by produceState<Map<ConsentId, ConsentDecision>?>(
         initialValue = null,
         key1 = appContext,
@@ -215,16 +215,16 @@ fun DuckDetectorApp() {
                     StartupBootstrapLoadingScreen(modifier = Modifier.fillMaxSize())
                 }
 
-                !agreementAccepted -> {
-                    AgreementScreen(
-                        onAgree = {
-                            scope.launch {
-                                agreementStore.accept()
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                // !agreementAccepted -> {
+                //     AgreementScreen(
+                //         onAgree = {
+                //             scope.launch {
+                //                 agreementStore.accept()
+                //             }
+                //         },
+                //         modifier = Modifier.fillMaxSize(),
+                //     )
+                // }
 
                 startupPoliciesReady -> {
                     AppReadyShell(
@@ -300,23 +300,23 @@ fun DuckDetectorApp() {
                 AlphaBuildBanner()
             }
 
-            AlphaBuildWarningOverlay(
-                forceVisible = agreementAccepted &&
-                        requiresAlphaAcknowledgement &&
-                        !alphaAcknowledged,
-                onDismissed = {
-                    alphaAcknowledged = true
-                },
-            )
+            // AlphaBuildWarningOverlay(
+            //     forceVisible = agreementAccepted &&
+            //             requiresAlphaAcknowledgement &&
+            //             !alphaAcknowledged,
+            //     onDismissed = {
+            //         alphaAcknowledged = true
+            //     },
+            // )
 
-            if (screenCaptureNoticeEventId > 0L) {
-                ScreenCaptureNoticeDialog(
-                    noticeInstanceKey = screenCaptureNoticeEventId,
-                    onDismiss = {
-                        screenCaptureNoticeEventId = 0L
-                    },
-                )
-            }
+            // if (screenCaptureNoticeEventId > 0L) {
+            //     ScreenCaptureNoticeDialog(
+            //         noticeInstanceKey = screenCaptureNoticeEventId,
+            //         onDismiss = {
+            //             screenCaptureNoticeEventId = 0L
+            //         },
+            //     )
+            // }
         }
     }
 }
